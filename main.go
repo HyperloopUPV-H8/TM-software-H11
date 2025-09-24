@@ -23,68 +23,19 @@ func main() {
 	data := make(map[string][]float64)
 
 	// Starts all the sensors
-	StartSensors(ctx, readings)
+	sensors.StartSensors(ctx, readings, "sensors.json")
 
-	// Create file
-	filename := fmt.Sprintf("output_%s.csv", time.Now().Format("20060102_150405"))
-
-	f, err := os.Create(filename)
-	if err != nil {
-		panic(err)
-	}
-
-	// Create writer
-	writer := csv.NewWriter(f)
-	defer writer.Flush()
-
-	// write header in log
-	writer.Write([]string{"timestamp", "magnitude", "avg", "min", "max"})
+	// CSV writer
+	writer, closeFile := SetUpCSVWriter()
+	defer closeFile()
 
 	// For each second
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
-	// Forever
-	for {
+	// Register the output of the sensors
+	runProcessingLoop(ctx, readings, data, ticker, writer)
 
-		select {
-
-		// Adds the reading to de batch
-		case d := <-readings:
-			data[d.Name] = append(data[d.Name], d.Measure)
-
-		// Each seconds writes the log
-		case t := <-ticker.C:
-			ParseDataWriteLog(data, t, writer)
-
-		// Stop app
-		case <-ctx.Done():
-			return
-
-		}
-
-	}
-
-}
-
-// StartSensors starts sensor goroutines that write to 'readings'.
-// They stop when ctx is canceled. This function does not close 'readings'.
-func StartSensors(ctx context.Context, readings chan<- sensors.Data) {
-	ss := []sensors.Sensor{
-		{Name: "voltaje", Number: 1, Unit: "V", Period: 50 * time.Millisecond, Avg: 12, Sdev: 1},
-		{Name: "voltaje", Number: 2, Unit: "V", Period: 50 * time.Millisecond, Avg: 12, Sdev: 2},
-		{Name: "voltaje", Number: 3, Unit: "V", Period: 55 * time.Millisecond, Avg: 12, Sdev: 2.5},
-		{Name: "voltaje", Number: 4, Unit: "V", Period: 60 * time.Millisecond, Avg: 12, Sdev: 3},
-
-		{Name: "distance", Number: 1, Unit: "cm", Period: 20 * time.Millisecond, Avg: 20, Sdev: 1},
-		{Name: "distance", Number: 2, Unit: "cm", Period: 23 * time.Millisecond, Avg: 20, Sdev: 0.50},
-		{Name: "distance", Number: 3, Unit: "cm", Period: 23 * time.Millisecond, Avg: 20, Sdev: 2},
-	}
-
-	// Launch all sensors.
-	for i := range ss {
-		ss[i].StartMeasuring(ctx, readings)
-	}
 }
 
 // ParseDataWriteLog writes one CSV row per magnitude in `data`.
@@ -119,5 +70,54 @@ func ParseDataWriteLog(data map[string][]float64, t time.Time, writer *csv.Write
 
 		// Remove content
 		data[magnitude] = data[magnitude][:0]
+	}
+}
+
+// setCSVWriter configures and return the csv file writer and a function
+// to close the writer
+func SetUpCSVWriter() (*csv.Writer, func()) {
+
+	// Create file
+	filename := fmt.Sprintf("output_%s.csv", time.Now().Format("20060102_150405"))
+
+	f, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create writer
+	writer := csv.NewWriter(f)
+
+	// write header in log
+	writer.Write([]string{"timestamp", "magnitude", "avg", "min", "max"})
+
+	// Retunrs thew writer and a function to close it
+	return writer, func() {
+		writer.Flush()
+		f.Close()
+	}
+}
+
+// runProcessingLoops recives the output of the sensors, stores it and obtains the main stats
+func runProcessingLoop(ctx context.Context, readings chan sensors.Data, data map[string][]float64, ticker *time.Ticker, writer *csv.Writer) {
+	// Forever
+	for {
+
+		select {
+
+		// Adds the reading to de batch
+		case d := <-readings:
+			data[d.Name] = append(data[d.Name], d.Measure)
+
+		// Each seconds writes the log
+		case t := <-ticker.C:
+			ParseDataWriteLog(data, t, writer)
+
+		// Stop app
+		case <-ctx.Done():
+			return
+
+		}
+
 	}
 }
