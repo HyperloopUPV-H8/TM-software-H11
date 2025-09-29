@@ -1,31 +1,32 @@
-import { toast } from "sonner";
 import "./App.css";
-import { Button } from "./components/ui/button";
 import { Toaster } from "./components/ui/sonner";
-import { getFormattedDate } from "./lib/utils";
+import WebhookViewer from "./components/common/WebhookViewer";
+
+const toastConfig = {
+  position: "bottom-center" as const,
+  duration: 3000,
+  richColors: true,
+  closeButton: true,
+};
 
 function App() {
-  const handleButtonClick = () => {
-    toast("Event has been created", {
-      description: getFormattedDate(new Date()),
-      action: {
-        label: "Undo",
-        onClick: () => console.log("Undo"),
-      },
-    });
-    console.log("Button clicked");
-  };
-
   return (
     <>
-      <div className="flex flex-col items-center justify-center h-screen">
-        <h1 className="text-3xl font-bold text-black mb-10">
+      <div className="flex flex-col items-center justify-center h-screen w-screen">
+        <h1 className="text-3xl font-bold text-black my-2">
           Training Month - Hyperloop H11
         </h1>
-        <Button onClick={handleButtonClick}>Click me</Button>
+        <WebhookViewer />
       </div>
 
-      <Toaster position="top-center" richColors />
+      <Toaster
+        {...toastConfig}
+        toastOptions={{
+          style: {
+            textAlign: "left",
+          },
+        }}
+      />
     </>
   );
 }
