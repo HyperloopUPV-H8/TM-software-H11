@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "./ui/button";
+import { Dialog, DialogTrigger, DialogContent } from "./ui/dialog";
+import { Input } from "./ui/input";
 
 export default function SignupModal({ open, onClose }) {
   const [form, setForm] = useState({ name: "", email: "" });
@@ -14,11 +16,9 @@ export default function SignupModal({ open, onClose }) {
     setSubmitted(true);
   }
 
-  if (!open) return null;
-
   return (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 overflow-auto">
-  <div className="bg-white rounded-lg shadow-lg p-6 w-80 mx-auto relative flex flex-col items-center">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm mx-auto">
         <button
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
           onClick={onClose}
@@ -33,32 +33,32 @@ export default function SignupModal({ open, onClose }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block mb-1 font-medium" htmlFor="name">Name</label>
-              <input
+              <Input
                 id="name"
                 name="name"
                 type="text"
                 value={form.name}
                 onChange={handleChange}
                 required
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full"
               />
             </div>
             <div>
               <label className="block mb-1 font-medium" htmlFor="email">Email</label>
-              <input
+              <Input
                 id="email"
                 name="email"
                 type="email"
                 value={form.email}
                 onChange={handleChange}
                 required
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full"
               />
             </div>
             <Button type="submit" className="w-full">Sign Up</Button>
           </form>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
