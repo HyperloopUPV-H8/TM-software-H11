@@ -1,0 +1,21 @@
+[sensor.temperature]
+name = "Temperature"
+unit = "°C"
+min = 0.0
+max = 50.0
+period_ms = 200
+
+[sensor.pressure]
+name = "Pressure"
+unit = "bar"
+min = 0.0
+max = 10.0
+period_ms = 200
+
+[processor]
+batch_size = 5
+
+[logger]
+dir = "logs"
+prefix = "sensor_log"
+max_lines = 100 
