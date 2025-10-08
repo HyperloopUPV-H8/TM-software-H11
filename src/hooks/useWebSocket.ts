@@ -18,6 +18,7 @@ export interface UseWebSocketOptions {
 export interface UseWebSocketReturn {
   connectionStatus: ConnectionStatus;
   messages: MetricMessage[];
+  lastMetrics: LastMetrics;
   connect: () => void;
   connectAsync: () => Promise<void>;
   disconnect: () => void;
@@ -29,6 +30,13 @@ export interface UseWebSocketReturn {
   onDisconnect?: () => void;
   onDisconnectAsync?: (disconnectAsync: () => Promise<void>) => void;
 }
+
+type LastMetrics = {
+  humidity: { value: number; lastUpdated: Date };
+  temperature: { value: number; lastUpdated: Date };
+  signal_strength: { value: number; lastUpdated: Date };
+  battery_level: { value: number; lastUpdated: Date };
+};
 
 export const useWebSocket = (
   options: UseWebSocketOptions
@@ -48,7 +56,14 @@ export const useWebSocket = (
 
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("disconnected");
+
   const [messages, setMessages] = useState<MetricMessage[]>([]);
+  const [lastMetrics, setLastMetrics] = useState<LastMetrics>({
+    humidity: { value: 0, lastUpdated: new Date() },
+    temperature: { value: 0, lastUpdated: new Date() },
+    signal_strength: { value: 0, lastUpdated: new Date() },
+    battery_level: { value: 0, lastUpdated: new Date() },
+  });
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -85,7 +100,43 @@ export const useWebSocket = (
         try {
           const receivedData: MetricMessage = JSON.parse(event.data);
 
-          setMessages((prev) => [...prev, receivedData]);
+          setMessages((prev) => {
+            const newMessages = [...prev, receivedData];
+            return newMessages.slice(-50);
+          });
+
+          setLastMetrics((prev) => {
+            const updated = { ...prev };
+            let hasChanges = false;
+
+            // Use timestamp from the message, fallback to current time if not available
+            const messageTimestamp = receivedData.timestamp
+              ? new Date(receivedData.timestamp)
+              : new Date();
+
+            // Dynamically update any metric that exists in the received data
+            Object.keys(receivedData).forEach((key) => {
+              if (
+                key !== "timestamp" &&
+                receivedData[key as keyof MetricMessage] !== undefined
+              ) {
+                const newValue = parseFloat(
+                  receivedData[key as keyof MetricMessage] as string
+                );
+                if (updated[key as keyof LastMetrics]?.value !== newValue) {
+                  updated[key as keyof LastMetrics] = {
+                    value: newValue,
+                    lastUpdated: messageTimestamp,
+                  };
+                  hasChanges = true;
+                }
+              }
+            });
+
+            // Only return new object if there are actual changes
+            return hasChanges ? updated : prev;
+          });
+
           onMessage?.(receivedData);
         } catch (error) {
           console.error("Error parsing WebSocket message:", error);
@@ -175,6 +226,7 @@ export const useWebSocket = (
   return {
     connectionStatus,
     messages,
+    lastMetrics,
     connect,
     connectAsync,
     disconnect,

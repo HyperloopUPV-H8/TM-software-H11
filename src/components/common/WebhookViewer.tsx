@@ -1,8 +1,6 @@
 import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
 
 import ConnectButton from "./ConnectButton";
-import MessageCard from "./MessageCard";
 
 import { getStatusVariant, getStatusColor } from "@/lib/statusUtils";
 
@@ -10,14 +8,23 @@ import { WEBHOOK_URL } from "@/constants/ws";
 
 import { useWebhookConnection } from "@/hooks/useWebSocketConnection";
 
+import MetricBox from "./MetricBox";
+import { useEffect, useState } from "react";
+
 const WebhookViewer = () => {
-  const {
-    connectionStatus,
-    messages,
-    disconnect,
-    connect,
-    handleClearMessages,
-  } = useWebhookConnection();
+  const { connectionStatus, lastMetrics, disconnect, connect } =
+    useWebhookConnection();
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every second for live counter
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="p-3 mx-auto w-full">
@@ -25,7 +32,7 @@ const WebhookViewer = () => {
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3 w-full justify-end">
             <Badge
-              className={`flex items-center gap-2 ${getStatusVariant(
+              className={`flex items-center gap-2 bg-primary/10 text-primary border-primary/20 ${getStatusVariant(
                 connectionStatus
               )}`}
             >
@@ -43,16 +50,8 @@ const WebhookViewer = () => {
               connectionStatus={connectionStatus}
               disconnect={disconnect}
               connect={connect}
-              className="select-none cursor-pointer"
+              className="select-none cursor-pointer bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
             />
-            <Button
-              onClick={handleClearMessages}
-              variant={"secondary"}
-              className="rounded-md text-sm select-none cursor-pointer"
-              aria-label="Clear"
-            >
-              Clear
-            </Button>
           </div>
         </div>
 
@@ -65,26 +64,16 @@ const WebhookViewer = () => {
           </p>
         </div>
 
-        {/* Message History */}
-        <div>
-          <Badge className="font-semibold mb-3 text-md">
-            {messages.length} message{messages.length !== 1 ? "s" : ""}
-          </Badge>
-          <div className="max-h-112 overflow-y-auto flex gap-2 flex-wrap-reverse flex-row-reverse">
-            {messages.length === 0 ? (
-              <p className="text-gray-500 text-center py-8 w-full">
-                No messages received yet
-              </p>
-            ) : (
-              messages.map((message, index) => (
-                <MessageCard
-                  key={index}
-                  message={message}
-                  sequenceNumber={index + 1}
-                />
-              ))
-            )}
-          </div>
+        {/* Metrics boxes */}
+        <div className="flex flex-wrap gap-4">
+          {Object.entries(lastMetrics).map(([key, metricData]) => (
+            <MetricBox
+              key={key}
+              metricLabel={key}
+              metricData={metricData}
+              currentTime={currentTime}
+            />
+          ))}
         </div>
       </div>
     </div>
