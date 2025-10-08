@@ -1,15 +1,14 @@
 import React from "react";
 
-export function Button({ children, className = "", ...props }) {
-  return (
-    <button
-      className={
-        "px-4 py-2 rounded bg-[#0a2342] text-white font-bold shadow-lg hover:bg-[#16335b] transition " +
-        className
-      }
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+export const Button = ({ children, className = "", ...props }) => (
+  <button
+    {...props}
+    className={`px-4 py-2 rounded-md text-white font-semibold ${
+      props.disabled
+        ? "bg-gray-500 cursor-not-allowed"
+        : "bg-blue-600 hover:bg-blue-700 transition"
+    } ${className}`}
+  >
+    {children}
+  </button>
+);
