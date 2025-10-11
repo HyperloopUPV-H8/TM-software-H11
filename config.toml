@@ -22,5 +22,5 @@ max_lines = 100
 
 [network]
 mode = "server"          # or "client"
-protocol = "tcp"        
+protocol = "tcp"         # currently only tpc, not udp
 address = "localhost:4040"
