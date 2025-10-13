@@ -5,8 +5,11 @@ export const TOAST_MESSAGES = {
   DISCONNECTED: "Disconnected from webhook server",
   CONNECTING: "Connecting to webhook server",
   DISCONNECTING: "Disconnecting from webhook server",
-  ERROR: "Error connecting to webhook server",
+  ERROR_CONNECTING: "Error connecting to webhook server",
   MESSAGES_CLEARED: "Messages cleared",
+  SUCCESS: "Successful",
+  ERROR: "Error",
+  SENDING_COMMAND: "Sending command",
 } as const;
 
 // Toast Descriptions
@@ -16,7 +19,7 @@ export const TOAST_DESCRIPTIONS = {
   DISCONNECTED: "You are now disconnected from the webhook server",
   CONNECTING: "Please wait while we connect to the webhook server",
   DISCONNECTING: "Please wait while we disconnect from the webhook server",
-  ERROR: "Please check your internet connection and try again",
+  ERROR_CONNECTING: "Please check your internet connection and try again",
   MESSAGES_CLEARED: "All messages have been cleared",
 } as const;
 

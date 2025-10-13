@@ -2,6 +2,7 @@ import type { ComponentProps } from "react";
 import { Button } from "../ui/button";
 
 import type { ConnectionStatus } from "@/types/ConnectionsStatus";
+import { Spinner } from "../ui/spinner";
 
 interface ConnectButtonProps
   extends Omit<
@@ -43,7 +44,7 @@ const ConnectButton = ({
         className={`${baseClasses} bg-amber-100 text-amber-700 border-amber-200 cursor-not-allowed`}
         {...props}
       >
-        Connecting...
+        <Spinner aria-hidden="true" /> Connecting...
       </Button>
     );
   }

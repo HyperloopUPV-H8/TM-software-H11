@@ -1,4 +1,5 @@
 import type { ConnectionStatus } from "@/types/ConnectionsStatus";
+import type { LastMetrics } from "@/types/LastMetrics";
 import type MetricMessage from "@/types/MetricMessage";
 import { useState, useEffect, useRef, useCallback } from "react";
 
@@ -30,13 +31,6 @@ export interface UseWebSocketReturn {
   onDisconnect?: () => void;
   onDisconnectAsync?: (disconnectAsync: () => Promise<void>) => void;
 }
-
-type LastMetrics = {
-  humidity: { value: number; lastUpdated: Date };
-  temperature: { value: number; lastUpdated: Date };
-  signal_strength: { value: number; lastUpdated: Date };
-  battery_level: { value: number; lastUpdated: Date };
-};
 
 export const useWebSocket = (
   options: UseWebSocketOptions

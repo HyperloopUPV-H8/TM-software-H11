@@ -2,7 +2,7 @@ import { useWebSocket } from "./useWebSocket";
 import { useCallback } from "react";
 import { ToastNotifications } from "@/lib/notifications";
 import { CONSOLE_MESSAGES } from "@/constants/messages";
-import { WEBHOOK_URL } from "@/constants/ws";
+import { WEBHOOK_URL } from "@/constants/urls";
 import type MetricMessage from "@/types/MetricMessage";
 
 export const useWebhookConnection = () => {

@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { getFormattedDate } from "@/lib/utils";
 import { TOAST_MESSAGES, TOAST_DESCRIPTIONS } from "@/constants/messages";
+import type { CommandResponse } from "./api";
 
 function showNewMessage() {
   toast.info(TOAST_MESSAGES.NEW_MESSAGE, {
@@ -21,9 +22,6 @@ function showDisconnected() {
 }
 
 function showConnecting(promise: Promise<void>) {
-  //   toast.loading(TOAST_MESSAGES.CONNECTING, {
-  //     description: TOAST_DESCRIPTIONS.CONNECTING,
-  //   });
   toast.promise(promise, {
     loading: TOAST_MESSAGES.CONNECTING,
     success: () => {
@@ -45,7 +43,31 @@ function showDisconnecting(promise: Promise<void>) {
 
 function showError() {
   toast.error(TOAST_MESSAGES.ERROR, {
-    description: TOAST_DESCRIPTIONS.ERROR,
+    description: TOAST_DESCRIPTIONS.ERROR_CONNECTING,
+  });
+}
+
+function showTextSuccess(text: string) {
+  toast.success(TOAST_MESSAGES.SUCCESS, {
+    description: text,
+  });
+}
+
+function showCommandResult(promise: Promise<CommandResponse>, command: string) {
+  toast.promise(promise, {
+    loading: TOAST_MESSAGES.SENDING_COMMAND,
+    success: (data) => {
+      return `${TOAST_MESSAGES.SUCCESS} ${command}: ${data.status}`;
+    },
+    error: (error) => {
+      return `${TOAST_MESSAGES.ERROR} ${command}: ${error.message}`;
+    },
+  });
+}
+
+function showTextError(text: string) {
+  toast.error(TOAST_MESSAGES.ERROR, {
+    description: text,
   });
 }
 
@@ -63,4 +85,7 @@ export const ToastNotifications = {
   showDisconnecting,
   showError,
   showMessagesCleared,
+  showTextSuccess,
+  showTextError,
+  showCommandResult,
 };
