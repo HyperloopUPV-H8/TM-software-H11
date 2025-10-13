@@ -1,10 +1,10 @@
-package internal
+package generator
 
 import (
 	"time"
 
 	"github.com/vasyl-ks/TM-software-H11/config"
-	"github.com/vasyl-ks/TM-software-H11/model"
+	"github.com/vasyl-ks/TM-software-H11/internal/model"
 )
 
 // getLastTime returns the latest timestamp from a slice of SensorData.
@@ -96,7 +96,7 @@ Note:
   - Calculations are split into separate functions/goroutines for concurrency practice,
     even though a single-pass calculation would be faster and use less computational overhead.
 */
-func Process(in <-chan model.SensorData, out chan<- model.ResultData) {
+func Process(inChan <-chan model.SensorData, outChan chan<- model.ResultData) {
 	batchInterval := config.Processor.Interval // defines how often results are calculated.
 
 	var dataSlice []model.SensorData
@@ -105,7 +105,7 @@ func Process(in <-chan model.SensorData, out chan<- model.ResultData) {
 
 	for {
 		select {
-		case data := <-in:
+		case data := <-inChan:
 			dataSlice = append(dataSlice, data)
 		case <-ticker.C:
 			// Channels for calculations
@@ -141,7 +141,7 @@ func Process(in <-chan model.SensorData, out chan<- model.ResultData) {
 				CreatedAt:       tme,
 				ProcessedAt:     time.Now().Local(),
 			}
-			out <- result
+			outChan <- result
 
 			// Reset slice for next batch
 			dataSlice = []model.SensorData{}

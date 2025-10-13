@@ -9,7 +9,10 @@
 	    "maxPressure": 10,
 	    "minPressure": 0,
 	    "maxTemp": 50,
-	    "minTemp": 0
+	    "minTemp": 0,
+        "ecoMode": 0.5,
+        "normalMode": 0.8,
+        "speedMode": 1
     },
     "processor": {
         "intervalMilliSeconds": 100
@@ -18,8 +21,10 @@
         "maxLines": 5000,
         "fileDir": "logs"
     },
-    "senderANDlistener": {
+    "hub": {
         "udpPort": 10000,
+        "tcpPort": 10000,
+        "wsPort":  10000,
         "bufferSize": 1024
     }
 }
