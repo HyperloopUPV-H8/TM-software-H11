@@ -4,11 +4,12 @@ import { ToastNotifications } from "@/lib/notifications";
 import { CONSOLE_MESSAGES } from "@/constants/messages";
 import { WEBHOOK_URL } from "@/constants/urls";
 import type MetricMessage from "@/types/MetricMessage";
+import type Command from "@/types/Command";
 
 export const useWebhookConnection = () => {
   // Function executed when a new message is received
   const handleMessage = useCallback((data: MetricMessage) => {
-    ToastNotifications.showNewMessage();
+    // ToastNotifications.showNewMessage();
     console.log(CONSOLE_MESSAGES.NEW_MESSAGE, data);
   }, []);
 
@@ -71,7 +72,7 @@ export const useWebhookConnection = () => {
 
   const webSocketHook = useWebSocket({
     url: WEBHOOK_URL,
-    autoConnect: true,
+    autoConnect: false,
     ...webSocketCallbacks,
   });
 
@@ -95,10 +96,18 @@ export const useWebhookConnection = () => {
     handleDisconnectAsync(webSocketHook.disconnectAsync);
   }, [webSocketHook, handleDisconnectAsync]);
 
+  const sendCommand = useCallback(
+    (command: Command) => {
+      webSocketHook.sendMessage(JSON.stringify(command));
+    },
+    [webSocketHook]
+  );
+
   return {
     ...webSocketHook,
     handleClearMessages,
     disconnect,
     connect,
+    sendCommand,
   };
 };

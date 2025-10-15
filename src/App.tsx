@@ -1,8 +1,9 @@
 import "./App.css";
 import { Toaster } from "./components/ui/sonner";
-import WebhookViewer from "./pages/WebhookViewer";
-import { Link, Route, Routes } from "react-router-dom";
-import WebhookSender from "./pages/WebhookSender";
+import WebhookViewer from "./components/common/WebhookViewer";
+import WebhookSender from "./components/common/WebhookSender";
+import { useWebhookConnection } from "./hooks/useWebSocketConnection";
+import { useEffect, useState } from "react";
 
 const toastConfig = {
   position: "bottom-center" as const,
@@ -12,25 +13,37 @@ const toastConfig = {
 };
 
 function App() {
+  const { connectionStatus, lastMetrics, disconnect, connect, sendCommand } =
+    useWebhookConnection();
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every second for live counter
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
-      <div className="flex flex-col items-center justify-center h-screen w-screen">
-        <header className="flex flex-col items-center absolute top-0 m-2 p-4">
-          <h1 className="text-3xl font-bold text-black my-2">
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <header className="flex items-center justify-center gap-10 w-full p-5 px-10">
+          <h1 className="text-3xl font-bold text-black my-2 text-center">
             Training Month - Hyperloop H11
           </h1>
-
-          <nav className="flex gap-4">
-            <Link to="/viewer">Webhook Viewer</Link>
-            <Link to="/sender">Webhook Sender</Link>
-          </nav>
         </header>
 
-        <main>
-          <Routes>
-            <Route path="/viewer" element={<WebhookViewer />} />
-            <Route path="/sender" element={<WebhookSender />} />
-          </Routes>
+        <main className="w-full flex justify-center flex-1 items-start">
+          <WebhookViewer lastMetrics={lastMetrics} currentTime={currentTime} />
+          <WebhookSender
+            connectionStatus={connectionStatus}
+            disconnect={disconnect}
+            connect={connect}
+            sendCommand={sendCommand}
+          />
         </main>
       </div>
 

@@ -1,15 +1,15 @@
 export const valueChangedAnimation = [
   {
-    transform: "scale(1.02)",
-    boxShadow: "0 0 0 0 var(--primary)",
+    transform: "scale(1.01)",
+    boxShadow: "0 0 3px 1px var(--primary)",
   },
   {
     transform: "scale(1.01)",
-    boxShadow: "0 0 8px var(--primary)",
+    boxShadow: "0 0 3px 1px var(--primary)",
   },
   {
-    transform: "scale(1)",
-    boxShadow: "0 0 0 0 transparent",
+    transform: "scale(1.01)",
+    boxShadow: "0px 0 3px 0 transparent",
   },
 ];
 

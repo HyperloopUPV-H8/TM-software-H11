@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { getFormattedDate } from "@/lib/utils";
 import { TOAST_MESSAGES, TOAST_DESCRIPTIONS } from "@/constants/messages";
-import type { CommandResponse } from "./api";
+import type Command from "@/types/Command";
 
 function showNewMessage() {
   toast.info(TOAST_MESSAGES.NEW_MESSAGE, {
@@ -53,15 +53,11 @@ function showTextSuccess(text: string) {
   });
 }
 
-function showCommandResult(promise: Promise<CommandResponse>, command: string) {
-  toast.promise(promise, {
-    loading: TOAST_MESSAGES.SENDING_COMMAND,
-    success: (data) => {
-      return `${TOAST_MESSAGES.SUCCESS} ${command}: ${data.status}`;
-    },
-    error: (error) => {
-      return `${TOAST_MESSAGES.ERROR} ${command}: ${error.message}`;
-    },
+function showCommandResult(command: Command) {
+  toast.success(TOAST_MESSAGES.SUCCESS, {
+    description: `${TOAST_MESSAGES.SUCCESS} ${command.action}${
+      command.params ? ` ${JSON.stringify(command.params)}` : ""
+    }`,
   });
 }
 

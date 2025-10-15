@@ -1,1 +1,1 @@
-export type Action = "launch" | "detain" | "reset" | "error";
+export type Action = "start" | "stop" | "accelerate" | "mode";

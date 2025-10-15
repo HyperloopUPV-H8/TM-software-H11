@@ -1,3 +1,4 @@
+import unitMap from "@/constants/unitMap";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -33,6 +34,16 @@ export const formatSnakeCaseToTitle = (str: string): string => {
     .join(" ");
 };
 
+// Converts PascalCase to Title Case
+// Example: "BatteryLevel" -> "Battery Level"
+export const formatPascalCaseToTitle = (str: string) => {
+  return str
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2") // Handle acronyms: "XMLParser" → "XML Parser"
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2") // Regular PascalCase: "myVar" → "my Var"
+    .replace(/^./, (char) => char.toUpperCase()) // Ensure first char is uppercase
+    .trim();
+};
+
 // Use currentTime for live updates
 export const formatLastUpdatedLive = (
   date: Date,
@@ -59,14 +70,30 @@ export const formatLastUpdatedLive = (
   }
 };
 
+export const isISODateString = (str: string): boolean => {
+  // Check if string matches ISO 8601 format
+  const isoRegex =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+  if (!isoRegex.test(str)) {
+    return false;
+  }
+
+  const date = new Date(str);
+  return !isNaN(date.getTime());
+};
+
 // Utility function to format metric values with units
-export const formatMetricValue = (key: string, value: number): string => {
-  const unitMap: Record<string, string> = {
-    battery_level: "%",
-    temperature: " \u00B0C",
-    humidity: "%",
-    signal_strength: " dBm",
-  };
+export const formatMetricValue = (
+  key: string,
+  value: number | string
+): string => {
+  if (typeof value !== "number") {
+    if (isISODateString(value)) {
+      return new Date(value).toLocaleString();
+    }
+    return value.toString();
+  }
 
   const unit = unitMap[key] || "";
   return `${value.toFixed(2)}${unit}`;

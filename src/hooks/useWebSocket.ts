@@ -52,12 +52,7 @@ export const useWebSocket = (
     useState<ConnectionStatus>("disconnected");
 
   const [messages, setMessages] = useState<MetricMessage[]>([]);
-  const [lastMetrics, setLastMetrics] = useState<LastMetrics>({
-    humidity: { value: 0, lastUpdated: new Date() },
-    temperature: { value: 0, lastUpdated: new Date() },
-    signal_strength: { value: 0, lastUpdated: new Date() },
-    battery_level: { value: 0, lastUpdated: new Date() },
-  });
+  const [lastMetrics, setLastMetrics] = useState<LastMetrics>({});
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -110,13 +105,17 @@ export const useWebSocket = (
 
             // Dynamically update any metric that exists in the received data
             Object.keys(receivedData).forEach((key) => {
-              if (
-                key !== "timestamp" &&
-                receivedData[key as keyof MetricMessage] !== undefined
-              ) {
-                const newValue = parseFloat(
-                  receivedData[key as keyof MetricMessage] as string
-                );
+              let newValue: number | string | undefined =
+                receivedData[key as keyof MetricMessage];
+              if (key !== "timestamp" && newValue !== undefined) {
+                if (typeof newValue === "number") {
+                  newValue = parseFloat(newValue) || 0;
+                }
+
+                if (typeof newValue === "string") {
+                  newValue = newValue || "";
+                }
+
                 if (updated[key as keyof LastMetrics]?.value !== newValue) {
                   updated[key as keyof LastMetrics] = {
                     value: newValue,
@@ -179,6 +178,7 @@ export const useWebSocket = (
       wsRef.current.send(message);
     } else {
       console.warn("WebSocket is not connected. Cannot send message.");
+      throw new Error("WebSocket is not connected. Cannot send message.");
     }
   }, []);
 

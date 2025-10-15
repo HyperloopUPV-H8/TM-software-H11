@@ -3,7 +3,7 @@ import {
   cn,
   formatLastUpdatedLive,
   formatMetricValue,
-  formatSnakeCaseToTitle,
+  formatPascalCaseToTitle,
 } from "@/lib/utils";
 import {
   Card,
@@ -22,7 +22,7 @@ import React from "react";
 
 interface MetricBoxProps extends React.ComponentProps<"div"> {
   metricLabel: string;
-  metricData: { value: number; lastUpdated: Date };
+  metricData: { value: number | string; lastUpdated: Date };
   currentTime: Date;
 }
 
@@ -35,17 +35,26 @@ const MetricBox = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const valueRef = useRef<HTMLSpanElement>(null);
 
-  const [previousValue, setPreviousValue] = useState<number | null>(null);
+  const [previousValue, setPreviousValue] = useState<number | string | null>(
+    null
+  );
 
   const runFlashAnimation = useCallback(() => {
     cardRef.current?.animate(valueChangedAnimation, {
-      duration: 1000,
+      duration: 500,
       easing: "ease-out",
     });
   }, []);
 
   const runValueChangeAnimation = useCallback(() => {
     if (previousValue === null) {
+      return;
+    }
+
+    if (
+      typeof metricData.value !== "number" ||
+      typeof previousValue !== "number"
+    ) {
       return;
     }
 
@@ -95,7 +104,7 @@ const MetricBox = ({
           id={`metric-title-${metricLabel}`}
           className="text-sm text-muted-foreground uppercase tracking-wide"
         >
-          {formatSnakeCaseToTitle(metricLabel)}
+          {formatPascalCaseToTitle(metricLabel)}
         </CardTitle>
       </CardHeader>
 
