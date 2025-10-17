@@ -2,10 +2,12 @@ package netreceiver
 
 import (
 	"backend/internal/sensor"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -16,18 +18,28 @@ type Telemetry struct {
 	Timestamp string  `json:"timestamp"`
 }
 
-// starts a tpc listener that decodes incoming JSON messages into sensor Data
-func StartTCP(address string, out chan<- sensor.Data, stop <-chan struct{}) error {
+// StartTCP starts a tcp listener that decodes incoming JSON messages into sensor Data.
+// It returns immediately and runs the listener in background. Cancel the provided ctx to stop.
+func StartTCP(ctx context.Context, wg *sync.WaitGroup, address string, out chan<- sensor.Data) error {
 	ln, err := net.Listen("tcp", address)
 	if err != nil {
 		return fmt.Errorf("listen error: %w", err)
 	}
 	fmt.Println("Listening on", address)
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		defer ln.Close()
 		for {
+
 			conn, err := ln.Accept()
 			if err != nil {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				// temporary error
 				continue
 			}
 			go handleConn(conn, out)
