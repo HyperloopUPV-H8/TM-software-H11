@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -8,10 +9,19 @@ import (
 
 	"backend/config"
 	"backend/internal/logger"
+	"backend/internal/netreceiver"
 	"backend/internal/sensor"
 )
 
 func main() {
+	// Parse mode from command line
+	mode := flag.String("mode", "", "Mode to run: server or client")
+	flag.Parse()
+	if *mode != "server" && *mode != "client" {
+		fmt.Println("Usage: go run ./cmd/main.go --mode [server|client]")
+		return
+	}
+
 	// Load configuration
 	cfg, err := config.Load("config.toml")
 	if err != nil {
@@ -30,7 +40,44 @@ func main() {
 	dataCh := make(chan sensor.Data)
 	stopCh := make(chan struct{})
 
-	// Start sensors
+	switch *mode {
+	case "server":
+		// Only server opens TCP listener
+		if err := netreceiver.StartTCP(cfg.Network.Address, dataCh, stopCh); err != nil {
+			fmt.Println("Error starting TCP listener:", err)
+			return
+		}
+		fmt.Println("Server mode: listening for incoming telemetry...")
+
+	case "client":
+		// Only client simulates sensors
+		startSimulatedClient(cfg, dataCh, stopCh)
+		fmt.Println("Client mode: generating and sending telemetry...")
+	}
+
+	batch := make([]float64, 0, cfg.Processor.BatchSize)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	for {
+		select {
+		case d := <-dataCh:
+			batch = append(batch, d.Value)
+			if len(batch) >= cfg.Processor.BatchSize {
+				stats := sensor.Process(batch)
+				log.Printf("%s stats [%s] -> Mean: %.2f, Min: %.2f, Max: %.2f",
+					d.Name, d.Unit, stats.Mean, stats.Min, stats.Max)
+				batch = batch[:0]
+			}
+		case <-sigCh:
+			close(stopCh)
+			fmt.Println("Shutting down ...")
+			return
+		}
+	}
+}
+
+func startSimulatedClient(cfg *config.Config, out chan<- sensor.Data, stop <-chan struct{}) {
 	tempGen := sensor.Generator{
 		Name:   cfg.Sensor.Temperature.Name,
 		Unit:   cfg.Sensor.Temperature.Unit,
@@ -45,33 +92,6 @@ func main() {
 		Max:    cfg.Sensor.Pressure.Max,
 		Period: cfg.Sensor.Pressure.Period(),
 	}
-
-	tempGen.Start(dataCh, stopCh)
-	pressGen.Start(dataCh, stopCh)
-
-	// Batch and process data
-	var batch []float64
-	forward := func(values []float64, name string, unit string) {
-		stats := sensor.Process(values)
-		log.Printf("%s stats [%s] -> Mean: %.2f, Min: %.2f, Max: %.2f",
-			name, unit, stats.Mean, stats.Min, stats.Max)
-	}
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-
-	for {
-		select {
-		case d := <-dataCh:
-			batch = append(batch, d.Value)
-			if len(batch) >= cfg.Processor.BatchSize {
-				forward(batch, d.Name, d.Unit)
-				batch = batch[:0]
-			}
-		case <-sigCh:
-			close(stopCh)
-			fmt.Println("Shutting down ...")
-			return
-		}
-	}
+	tempGen.Start(out, stop)
+	pressGen.Start(out, stop)
 }

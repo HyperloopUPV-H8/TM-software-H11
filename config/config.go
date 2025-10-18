@@ -34,6 +34,7 @@ type Config struct {
 	} `toml:"sensor"`
 	Processor ProcessorCfg `toml:"processor"`
 	Logger    LoggerCfg    `toml:"logger"`
+	Network   NetworkCfg   `toml:"network"`
 }
 
 // Load reads configuration from a TOML file.
@@ -47,4 +48,10 @@ func Load(path string) (*Config, error) {
 
 func (s SensorCfg) Period() time.Duration {
 	return time.Duration(s.PeriodMS) * time.Millisecond
+}
+
+type NetworkCfg struct {
+	Mode     string `toml:"mode"`     // "server" or "client"
+	Protocol string `toml:"protocol"` // "tcp" or "udp"
+	Address  string `toml:"address"`  // ...
 }

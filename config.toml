@@ -19,3 +19,8 @@ batch_size = 5
 dir = "logs"
 prefix = "sensor_log"
 max_lines = 100 
+
+[network]
+mode = "server"          # or "client"
+protocol = "tcp"         # currently only tpc, not udp
+address = "localhost:4040"
