@@ -31,10 +31,22 @@ type Config struct {
 	Sensor struct {
 		Temperature SensorCfg `toml:"temperature"`
 		Pressure    SensorCfg `toml:"pressure"`
+		Cell1       SensorCfg `toml:"cell_1"`
+		Cell2       SensorCfg `toml:"cell_2"`
+		Cell3       SensorCfg `toml:"cell_3"`
+		Cell4       SensorCfg `toml:"cell_4"`
+		Cell5       SensorCfg `toml:"cell_5"`
+		Cell6       SensorCfg `toml:"cell_6"`
 	} `toml:"sensor"`
 	Processor ProcessorCfg `toml:"processor"`
 	Logger    LoggerCfg    `toml:"logger"`
 	Network   NetworkCfg   `toml:"network"`
+
+	Netsender NetsenderCfg `toml:"netsender"`
+
+	Websocket struct {
+		HistorySize int `toml:"history_size"`
+	} `toml:"websocket"`
 }
 
 // Load reads configuration from a TOML file.
@@ -51,7 +63,16 @@ func (s SensorCfg) Period() time.Duration {
 }
 
 type NetworkCfg struct {
-	Mode     string `toml:"mode"`     // "server" or "client"
-	Protocol string `toml:"protocol"` // "tcp" or "udp"
-	Address  string `toml:"address"`  // ...
+	Mode     string `toml:"mode"`         // "server" or "client"
+	Protocol string `toml:"protocol"`     // "tcp" or "udp" ...
+	Address  string `toml:"address"`      // ...
+	HTTPAddr string `toml:"http_address"` // address for HTTP/WS server
+}
+
+// NetsenderCfg controls dialing and backoff behavior for the netsender.
+type NetsenderCfg struct {
+	DialTimeoutMS    int `toml:"dial_timeout_ms"`
+	WriteTimeoutMS   int `toml:"write_timeout_ms"`
+	InitialBackoffMS int `toml:"initial_backoff_ms"`
+	MaxBackoffMS     int `toml:"max_backoff_ms"`
 }

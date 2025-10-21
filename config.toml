@@ -12,6 +12,48 @@ min = 0.0
 max = 10.0
 period_ms = 200
 
+[sensor.cell_1]
+name = "Cell 1"
+unit = "V"
+min = 3.0
+max = 4.2
+period_ms = 500
+
+[sensor.cell_2]
+name = "Cell 2"
+unit = "V"
+min = 3.0
+max = 4.2
+period_ms = 500
+
+[sensor.cell_3]
+name = "Cell 3"
+unit = "V"
+min = 3.0
+max = 4.2
+period_ms = 500
+
+[sensor.cell_4]
+name = "Cell 4"
+unit = "V"
+min = 3.0
+max = 4.2
+period_ms = 500
+
+[sensor.cell_5]
+name = "Cell 5"
+unit = "V"
+min = 3.0
+max = 4.2
+period_ms = 500
+
+[sensor.cell_6]
+name = "Cell 6"
+unit = "V"
+min = 3.0
+max = 4.2
+period_ms = 500
+
 [processor]
 batch_size = 5
 
@@ -24,3 +66,13 @@ max_lines = 100
 mode = "server"          # or "client"
 protocol = "tcp"         # currently only tpc, not udp
 address = "localhost:4040"
+http_address = "localhost:8080"
+
+[netsender]
+dial_timeout_ms = 3000
+write_timeout_ms = 5000
+initial_backoff_ms = 1000
+max_backoff_ms = 30000
+
+[websocket]
+history_size = 100

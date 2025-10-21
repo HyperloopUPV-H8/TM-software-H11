@@ -1,6 +1,7 @@
 package sensor
 
 import (
+	"context"
 	"math/rand"
 	"time"
 )
@@ -23,8 +24,8 @@ type Generator struct {
 }
 
 // Start launches a goroutine that produces readings into the out channel.
-// It stops when the context is canceled.
-func (g Generator) Start(out chan<- Data, stop <-chan struct{}) {
+// It stops when ctx is canceled.
+func (g Generator) Start(ctx context.Context, out chan<- Data) {
 	go func() {
 		ticker := time.NewTicker(g.Period)
 		defer ticker.Stop()
@@ -39,7 +40,7 @@ func (g Generator) Start(out chan<- Data, stop <-chan struct{}) {
 					Name:      g.Name,
 					Unit:      g.Unit,
 				}
-			case <-stop:
+			case <-ctx.Done():
 				return
 			}
 		}

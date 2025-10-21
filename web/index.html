@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Telemetry Dashboard</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 12px }
+    #controls { margin-bottom: 8px }
+    #log { height: 120px; overflow:auto; border:1px solid #ccc; padding:6px; background:#fafafa }
+    .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top:12px }
+    .card { border:1px solid #ddd; padding:8px; border-radius:6px; background:#fff }
+    canvas { width:100% !important; height:160px !important }
+    #mainChart { height:320px !important }
+  </style>
+</head>
+<body>
+  <h1>Telemetry Dashboard</h1>
+  <div id="controls">
+    <button id="connect">Connect WS</button>
+    <button id="disconnect">Disconnect WS</button>
+    <button id="clear">Clear Charts</button>
+    <input id="action" placeholder='{"action":"launch"}' style="width:300px">
+    <button id="send">Send Command</button>
+  </div>
+  <div id="log"></div>
+
+  <div class="card">
+    <h3>Overview</h3>
+    <div class="main-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="card"><h4>Temperature</h4><canvas id="mainTemp"></canvas></div>
+      <div class="card"><h4>Pressure</h4><canvas id="mainPressure"></canvas></div>
+    </div>
+  </div>
+
+  <h3>Battery Cells</h3>
+  <div class="grid" id="cells">
+    
+  </div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1/dist/chartjs-adapter-luxon.min.js"></script>
+<script>
+const logEl = document.getElementById('log')
+function log(msg){ const line = document.createElement('div'); line.textContent = msg; logEl.appendChild(line); logEl.scrollTop = logEl.scrollHeight }
+
+// utility: maintain a sliding window of points
+function pushPoint(dataset, x, y, maxPoints=100){
+  
+  const tx = (x instanceof Date) ? x.getTime() : (typeof x === 'string' ? (new Date(x)).getTime() : x)
+  dataset.data.push({x: tx, y: y});
+  if(dataset.data.length>maxPoints) dataset.data.shift();
+  
+  try{
+    const first = dataset.data.length ? dataset.data[0].x : null
+    const last = dataset.data.length ? dataset.data[dataset.data.length-1].x : null
+    console.debug('pushPoint: dataset length=', dataset.data.length, 'first=', first, 'last=', last)
+  }catch(e){ console.debug('pushPoint dbg err', e) }
+}
+
+//  simple charts tbh
+// create two smaller charts side-by-side: Temperature and Pressure
+const tempCtx = document.getElementById('mainTemp').getContext('2d')
+const tempChart = new Chart(tempCtx, {
+  type: 'line',
+  data: { datasets: [ { label: 'Temperature (°C)', borderColor: 'red', backgroundColor: 'rgba(255,0,0,0.1)', pointRadius: 2, data: [] } ] },
+  options: {
+    scales: { x: { type: 'time', time: { unit: 'second', displayFormats: { second: 'HH:mm:ss', minute: 'HH:mm' } }, ticks: { autoSkip: true, maxTicksLimit: 6 } }, y: { beginAtZero: false } },
+    animation: false,
+  }
+})
+
+const pressureCtx = document.getElementById('mainPressure').getContext('2d')
+const pressureChart = new Chart(pressureCtx, {
+  type: 'line',
+  data: { datasets: [ { label: 'Pressure (bar)', borderColor: 'blue', backgroundColor: 'rgba(0,0,255,0.1)', pointRadius: 2, data: [] } ] },
+  options: {
+    scales: { x: { type: 'time', time: { unit: 'second', displayFormats: { second: 'HH:mm:ss', minute: 'HH:mm' } }, ticks: { autoSkip: true, maxTicksLimit: 6 } }, y: { beginAtZero: false } },
+    animation: false,
+  }
+})
+
+const cellCharts = {}
+for(let i=1;i<=6;i++){
+  const wrapper = document.createElement('div'); wrapper.className='card';
+  wrapper.innerHTML = `<h4>Cell ${i}</h4><canvas id="cell${i}"></canvas>`;
+  document.getElementById('cells').appendChild(wrapper);
+  const ctx = document.getElementById('cell'+i).getContext('2d')
+  const c = new Chart(ctx, {
+    type: 'line', data: { datasets:[{ label: 'Voltage (V)', borderColor: 'green', pointRadius: 2, data:[] }] },
+      options:{
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'second', displayFormats: { second: 'HH:mm:ss' } },
+            ticks: { autoSkip: true, maxTicksLimit: 6 }
+          },
+          y: { beginAtZero:false }
+        },
+        animation:false
+      }
+  })
+  cellCharts['Cell '+i] = c
+}
+
+// WebSocket handling
+let ws = null
+function connectWS(){
+  if(ws) ws.close()
+  ws = new WebSocket((location.protocol==='https:'?'wss://':'ws://') + location.host + '/api/stream')
+  ws.onopen = () => log('WS open')
+  ws.onmessage = (e) => {
+    try{
+      const env = JSON.parse(e.data)
+      const t = env.type || env.Type
+      const ts = env.ts || env.timestamp || new Date().toISOString()
+      const payload = env.payload || env
+      handleEnvelope(t, ts, payload)
+    }catch(err){ log('ws parse err: '+err.message) }
+  }
+  ws.onclose = () => log('WS closed')
+}
+function disconnectWS(){ if(ws) ws.close(); ws=null }
+
+function handleEnvelope(type, ts, payload){
+  // if telemetry aggregated payload, expect { sensor, unit, mean, min, max }
+  if(type === 'telemetry'){
+    const time = new Date(ts)
+    const sensor = payload.sensor || payload.name
+    const unit = payload.unit || ''
+    const mean = payload.mean || payload.value || payload.mean
+    log(`${type} ${sensor} ${mean} ${unit} @ ${time.toISOString()}`)
+    if(sensor === 'Temperature' || sensor === 'Temperature'){
+      pushPoint(tempChart.data.datasets[0], time, mean)
+      tempChart.update()
+    } else if(sensor === 'Pressure'){
+      pushPoint(pressureChart.data.datasets[0], time, mean)
+      pressureChart.update()
+    } else if(sensor && sensor.startsWith('Cell')){
+      const ch = cellCharts[sensor]
+  if(ch){ pushPoint(ch.data.datasets[0], time, mean); ch.update() }
+    }
+  } else if(type === 'command_ack'){
+    log('ack: '+JSON.stringify(payload))
+  } else if(type === 'snapshot'){
+    log('snapshot: '+JSON.stringify(payload))
+  } else {
+    log(type+': '+JSON.stringify(payload))
+  }
+}
+
+// load history from /api/messages
+async function loadHistory(){
+  try{
+    const res = await fetch('/api/messages')
+    const msgs = await res.json()
+    msgs.reverse() // server returns most recent first
+    msgs.forEach(env => {
+      const t = env.type || env.Type
+      const ts = env.ts || env.timestamp || new Date().toISOString()
+      const payload = env.payload || env
+      handleEnvelope(t, ts, payload)
+    })
+  }catch(e){ log('history load failed: '+e.message) }
+}
+
+// clear charts
+function clearCharts(){
+  mainChart.data.datasets.forEach(ds=>ds.data=[]); mainChart.update();
+  Object.values(cellCharts).forEach(ch=>{ ch.data.datasets[0].data = []; ch.update() })
+}
+
+// wire buttons
+document.getElementById('connect').onclick = () => { connectWS(); }
+document.getElementById('disconnect').onclick = () => { disconnectWS(); }
+document.getElementById('clear').onclick = () => { clearCharts(); }
+
+document.getElementById('send').onclick = async () => {
+  const val = document.getElementById('action').value || '{"action":"launch"}'
+  try{
+    const obj = JSON.parse(val)
+    const res = await fetch('/api/commands', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj) })
+    const txt = await res.text()
+    log('POST /api/commands -> '+res.status+' '+txt)
+  }catch(e){ log('invalid json') }
+}
+
+// bootstrap
+loadHistory()
+// automatically connect WS on page load so the dashboard receives live updates
+connectWS()
+</script>
+</body>
+</html>
